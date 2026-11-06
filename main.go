@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/joho/godotenv/autoload" // ในเครื่องโหลดจาก .env ส่วนบน Render ไม่มีไฟล์ก็ใช้ค่าจาก Environment
 
@@ -20,18 +21,41 @@ import (
 	"siangame/store"
 )
 
+// envValueOf ตัดช่องว่างและบรรทัดใหม่ที่ติดมาตอนวางค่าในหน้า Environment
+func envValueOf(raw string) string {
+	return strings.TrimSpace(raw)
+}
+
+func envValue(name string) string {
+	return envValueOf(os.Getenv(name))
+}
+
+// poolConfig อ่าน DATABASE_URL ถ้าผิดจะบอกแค่สาเหตุ ไม่ส่งตัว URL ออกไป เพราะมีรหัสผ่านอยู่ข้างใน
+func poolConfig(databaseURL string) (*pgxpool.Config, error) {
+	cfg, err := pgxpool.ParseConfig(databaseURL)
+	var parseErr *pgconn.ParseConfigError
+	if errors.As(err, &parseErr) {
+		return nil, parseErr.Unwrap()
+	}
+	return cfg, err
+}
+
 func main() {
-	secret := os.Getenv("JWT_SECRET")
+	secret := envValue("JWT_SECRET")
 	if len(secret) < 32 {
 		log.Fatal("JWT_SECRET ต้องยาวอย่างน้อย 32 ตัวอักษร")
 	}
-	databaseURL := os.Getenv("DATABASE_URL")
+	databaseURL := envValue("DATABASE_URL")
 	if databaseURL == "" {
 		log.Fatal("ต้องกำหนด DATABASE_URL")
 	}
-	pool, err := pgxpool.New(context.Background(), databaseURL)
+	cfg, err := poolConfig(databaseURL)
 	if err != nil {
-		log.Fatal("อ่าน DATABASE_URL ไม่ได้")
+		log.Fatal("อ่าน DATABASE_URL ไม่ได้: ", err)
+	}
+	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
+	if err != nil {
+		log.Fatal("สร้าง connection pool ไม่ได้")
 	}
 	defer pool.Close()
 	if err := pool.Ping(context.Background()); err != nil {
