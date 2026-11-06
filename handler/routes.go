@@ -11,7 +11,23 @@ func (h *Handler) Routes() http.Handler {
 	// login = ต้องมีตั๋ว
 	login := func(next http.HandlerFunc) http.HandlerFunc { return mw.RequireLogin(h.Tickets, next) }
 
+	// admin = ต้องมีตั๋วและบทบาทเป็น admin ตรวจตั๋วก่อนเสมอแล้วค่อยดูบทบาท
+	admin := func(next http.HandlerFunc) http.HandlerFunc { return login(mw.RequireRole("admin", next)) }
+
 	mux := http.NewServeMux()
+	// หลังบ้าน: ทุกเส้นทางใต้ /api/admin ผ่าน admin(...) ไม่มีข้อยกเว้น
+	mux.HandleFunc("GET /api/admin/stats", admin(h.AdminStats))
+	mux.HandleFunc("GET /api/admin/games", admin(h.AdminListGames))
+	mux.HandleFunc("POST /api/admin/games", admin(h.AdminCreateGame))
+	mux.HandleFunc("GET /api/admin/games/{id}", admin(h.GetGame))
+	mux.HandleFunc("PUT /api/admin/games/{id}", admin(h.AdminUpdateGame))
+	mux.HandleFunc("DELETE /api/admin/games/{id}", admin(h.AdminStopSelling))
+	mux.HandleFunc("GET /api/admin/members", admin(h.AdminMembers))
+	mux.HandleFunc("PUT /api/admin/members/{id}/role", admin(h.AdminSetRole))
+	mux.HandleFunc("GET /api/admin/orders", admin(h.AdminOrders))
+	mux.HandleFunc("GET /api/admin/reviews", admin(h.AdminReviews))
+	mux.HandleFunc("DELETE /api/admin/reviews/{id}", admin(h.AdminDeleteReview))
+
 	mux.HandleFunc("POST /api/auth/register", h.Register)
 	mux.HandleFunc("POST /api/auth/login", h.Login)
 	mux.HandleFunc("GET /api/genres", h.ListGenres)

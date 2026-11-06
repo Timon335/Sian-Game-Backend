@@ -1,0 +1,602 @@
+openapi: 3.0.3
+info:
+  title: Sian Game API
+  version: 1.0.0
+  description: สัญญา API ระหว่าง React กับ Go ของเว็บขายเกม Sian Game
+  license:
+    name: Proprietary
+    url: https://github.com/Timon335/Sian-Game-Backend
+servers:
+  - url: http://localhost:8080
+security: []
+tags:
+  - name: public
+    description: เปิดให้ทุกคน
+  - name: member
+    description: ต้องเข้าสู่ระบบ
+  - name: admin
+    description: ต้องเป็นผู้ดูแล
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    gameId:
+      name: gameId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+  responses:
+    Error:
+      description: ข้อผิดพลาด
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NoContent:
+      description: สำเร็จ ไม่มีเนื้อหา
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: FORBIDDEN }
+            message: { type: string }
+    Member:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string }
+        displayName: { type: string }
+        role: { type: string, enum: [member, admin] }
+        createdAt: { type: string, format: date-time }
+    Login:
+      type: object
+      properties:
+        member: { $ref: '#/components/schemas/Member' }
+        token: { type: string }
+    Genre:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    Game:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        description: { type: string }
+        developer: { type: string }
+        releaseDate: { type: string, format: date, nullable: true }
+        price: { type: number }
+        cover: { type: string }
+        genres: { type: array, items: { type: string } }
+        screenshots: { type: array, items: { type: string } }
+        ratingAverage: { type: number }
+        ratingCount: { type: integer }
+        salesCount: { type: integer }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    GameInput:
+      type: object
+      required: [title, description, developer, price, cover, genreIds]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        developer: { type: string }
+        releaseDate: { type: string, format: date, nullable: true }
+        price: { type: number, minimum: 0, exclusiveMinimum: true }
+        cover: { type: string }
+        genreIds: { type: array, items: { type: integer } }
+        screenshots: { type: array, items: { type: string } }
+        isActive: { type: boolean }
+    GameList:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Game' } }
+    ReviewInput:
+      type: object
+      required: [rating, text]
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        text: { type: string }
+    Review:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        memberId: { type: integer, format: int64 }
+        displayName: { type: string }
+        gameId: { type: integer, format: int64 }
+        rating: { type: integer }
+        text: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        gameTitle: { type: string }
+        email: { type: string }
+    Order:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        total: { type: number }
+        createdAt: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              gameId: { type: integer, format: int64 }
+              title: { type: string }
+              cover: { type: string }
+              price: { type: number }
+        member: { $ref: '#/components/schemas/Member' }
+    Stats:
+      type: object
+      properties:
+        games: { type: integer }
+        members: { type: integer }
+        admins: { type: integer }
+        orders: { type: integer }
+        revenue: { type: number }
+        topSelling:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer, format: int64 }
+              title: { type: string }
+              cover: { type: string }
+              salesCount: { type: integer }
+        newestMembers: { type: array, items: { $ref: '#/components/schemas/Member' } }
+paths:
+  /api/auth/register:
+    post:
+      operationId: register
+      tags: [public]
+      summary: สมัครสมาชิก
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, displayName]
+              properties:
+                email: { type: string }
+                password: { type: string, minLength: 8 }
+                displayName: { type: string }
+      responses:
+        '201':
+          description: สร้างบัญชีแล้ว
+          content: { application/json: { schema: { $ref: '#/components/schemas/Member' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/auth/login:
+    post:
+      operationId: login
+      tags: [public]
+      summary: เข้าสู่ระบบ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: ได้ตั๋ว
+          content: { application/json: { schema: { $ref: '#/components/schemas/Login' } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /api/genres:
+    get:
+      operationId: listGenres
+      tags: [public]
+      summary: แนวเกมทั้งหมด
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Genre' } }
+  /api/games:
+    get:
+      operationId: listGames
+      tags: [public]
+      summary: เกมที่ขายอยู่
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/GameList' } } }
+  /api/games/{id}:
+    get:
+      operationId: getGame
+      tags: [public]
+      summary: รายละเอียดเกม รวมเกมที่เลิกขาย
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Game' } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/games/{id}/reviews:
+    get:
+      operationId: listReviews
+      tags: [public]
+      summary: รีวิวของเกม
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Review' } }
+    post:
+      operationId: createReview
+      tags: [member]
+      summary: เขียนรีวิว ไม่ต้องซื้อก่อน เกมละ 1 ครั้ง
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReviewInput' } } }
+      responses:
+        '201':
+          description: สร้างแล้ว
+          content: { application/json: { schema: { $ref: '#/components/schemas/Review' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/reviews/{id}:
+    put:
+      operationId: updateReview
+      tags: [member]
+      summary: แก้รีวิวของตัวเอง
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReviewInput' } } }
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Review' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: deleteReview
+      tags: [member]
+      summary: ลบรีวิวของตัวเอง
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/me:
+    get:
+      operationId: getMe
+      tags: [member]
+      summary: ข้อมูลของคนที่ถือตั๋ว
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Member' } } }
+        '401': { $ref: '#/components/responses/Error' }
+    put:
+      operationId: updateMe
+      tags: [member]
+      summary: แก้ชื่อที่แสดง
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [displayName]
+              properties:
+                displayName: { type: string }
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Member' } } }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/me/password:
+    put:
+      operationId: changePassword
+      tags: [member]
+      summary: เปลี่ยนรหัสผ่าน ต้องใส่รหัสเดิม
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 8 }
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '400': { $ref: '#/components/responses/Error' }
+  /api/me/cart:
+    get:
+      operationId: getCart
+      tags: [member]
+      summary: เกมในตะกร้า
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/GameList' } } }
+  /api/me/cart/{gameId}:
+    put:
+      operationId: addToCart
+      tags: [member]
+      summary: ใส่เกมลงตะกร้า
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/gameId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: removeFromCart
+      tags: [member]
+      summary: เอาเกมออกจากตะกร้า
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/gameId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+  /api/me/wishlist:
+    get:
+      operationId: getWishlist
+      tags: [member]
+      summary: เกมที่อยากได้
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/GameList' } } }
+  /api/me/wishlist/{gameId}:
+    put:
+      operationId: addToWishlist
+      tags: [member]
+      summary: เพิ่มเกมที่อยากได้
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/gameId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: removeFromWishlist
+      tags: [member]
+      summary: เอาเกมออกจากรายการอยากได้
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/gameId' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+  /api/me/library:
+    get:
+      operationId: getLibrary
+      tags: [member]
+      summary: คลังเกม
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/GameList' } } }
+  /api/me/orders:
+    get:
+      operationId: listOrders
+      tags: [member]
+      summary: ประวัติคำสั่งซื้อ
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Order' } }
+    post:
+      operationId: placeOrder
+      tags: [member]
+      summary: สั่งซื้อทุกเกมในตะกร้า ไม่รับ body ราคามาจากฐานข้อมูล
+      security: [{ bearer: [] }]
+      responses:
+        '201':
+          description: สำเร็จ เกมเข้าคลังทันที
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/me/orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [member]
+      summary: คำสั่งซื้อของตัวเอง 1 ใบ ของคนอื่นตอบ 404
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/admin/stats:
+    get:
+      operationId: adminStats
+      tags: [admin]
+      summary: ตัวเลขภาพรวม
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Stats' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/games:
+    get:
+      operationId: adminListGames
+      tags: [admin]
+      summary: เกมทั้งหมด รวมเกมที่เลิกขาย
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/GameList' } } }
+        '403': { $ref: '#/components/responses/Error' }
+    post:
+      operationId: adminCreateGame
+      tags: [admin]
+      summary: เพิ่มเกม
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/GameInput' } } }
+      responses:
+        '201':
+          description: สร้างแล้ว
+          content: { application/json: { schema: { $ref: '#/components/schemas/Game' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/games/{id}:
+    get:
+      operationId: adminGetGame
+      tags: [admin]
+      summary: รายละเอียดเกมสำหรับฟอร์ม
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Game' } } }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      operationId: adminUpdateGame
+      tags: [admin]
+      summary: แก้เกม หรือนำกลับมาขายด้วย isActive
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/GameInput' } } }
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Game' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      operationId: adminStopSelling
+      tags: [admin]
+      summary: เลิกขาย เกมยังอยู่ในคลังของคนที่ซื้อแล้ว
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/admin/members:
+    get:
+      operationId: adminMembers
+      tags: [admin]
+      summary: สมาชิกทั้งหมด
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Member' } }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/members/{id}/role:
+    put:
+      operationId: adminSetRole
+      tags: [admin]
+      summary: เปลี่ยนบทบาทคนอื่น แก้ของตัวเองไม่ได้
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [member, admin] }
+      responses:
+        '200':
+          description: สำเร็จ
+          content: { application/json: { schema: { $ref: '#/components/schemas/Member' } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/admin/orders:
+    get:
+      operationId: adminOrders
+      tags: [admin]
+      summary: คำสั่งซื้อทั้งหมด
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Order' } }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/reviews:
+    get:
+      operationId: adminReviews
+      tags: [admin]
+      summary: รีวิวทั้งหมด
+      security: [{ bearer: [] }]
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Review' } }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/admin/reviews/{id}:
+    delete:
+      operationId: adminDeleteReview
+      tags: [admin]
+      summary: ลบรีวิวใดก็ได้
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: '#/components/parameters/id' }]
+      responses:
+        '204': { $ref: '#/components/responses/NoContent' }
+        '404': { $ref: '#/components/responses/Error' }
