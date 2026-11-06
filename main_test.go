@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func TestEnvValueTrimsPastedWhitespace(t *testing.T) {
@@ -29,6 +32,28 @@ func TestPoolConfigBadURLHidesPassword(t *testing.T) {
 	}
 	if strings.Contains(err.Error(), "SEC") {
 		t.Errorf("error ห้ามมีรหัสผ่าน: %v", err)
+	}
+}
+
+func TestConnectErrorHidesPassword(t *testing.T) {
+	cfg, err := poolConfig("postgresql://user:SECRETPW@127.0.0.1:1/db?sslmode=disable&connect_timeout=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	err = pingDatabase(context.Background(), pool)
+	if err == nil {
+		t.Fatal("ต่อพอร์ตที่ไม่มี server ต้องคืน error")
+	}
+	if strings.Contains(err.Error(), "SECRETPW") {
+		t.Errorf("error ห้ามมีรหัสผ่าน: %v", err)
+	}
+	if !strings.Contains(err.Error(), "ต่อฐานข้อมูลไม่ติด") {
+		t.Errorf("error ต้องบอกเรื่องการเชื่อมต่อ: %v", err)
 	}
 }
 

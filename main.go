@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -40,6 +41,16 @@ func poolConfig(databaseURL string) (*pgxpool.Config, error) {
 	return cfg, err
 }
 
+// pingDatabase ตรวจว่าต่อฐานข้อมูลได้จริง ข้อความจาก pgx บอก host และสาเหตุ แต่ไม่มีรหัสผ่าน
+func pingDatabase(ctx context.Context, pool *pgxpool.Pool) error {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	if err := pool.Ping(ctx); err != nil {
+		return fmt.Errorf("ต่อฐานข้อมูลไม่ติด: %w", err)
+	}
+	return nil
+}
+
 func main() {
 	secret := envValue("JWT_SECRET")
 	if len(secret) < 32 {
@@ -58,8 +69,8 @@ func main() {
 		log.Fatal("สร้าง connection pool ไม่ได้")
 	}
 	defer pool.Close()
-	if err := pool.Ping(context.Background()); err != nil {
-		log.Fatal("ต่อฐานข้อมูลไม่ติด")
+	if err := pingDatabase(context.Background(), pool); err != nil {
+		log.Fatal(err)
 	}
 
 	h := &handler.Handler{
