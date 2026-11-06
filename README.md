@@ -2,7 +2,11 @@
 
 API ของเว็บขายเกม Sian Game เขียนด้วย Go `net/http`, pgx, JWT และ bcrypt ใช้ PostgreSQL บน Supabase และ deploy บน Render
 
-สัญญา API อยู่ที่ [openapi.yaml](openapi.yaml)
+- API: https://sian-game-api.onrender.com
+- เว็บ: https://sian-game-frontend.vercel.app
+- สัญญา API: [openapi.yaml](openapi.yaml)
+
+Render แบบฟรีจะหลับเมื่อไม่มีคนใช้ คำขอแรกอาจรอประมาณ 1 นาที
 
 ## โครงสร้าง
 
