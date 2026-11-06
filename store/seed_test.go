@@ -26,6 +26,28 @@ func scalar(t *testing.T, s *Store, sql string) int {
 	return n
 }
 
+func TestResetThenReloadRestoresSeed(t *testing.T) {
+	s := testStore(t)
+	loadSeed(t, s)
+	execOK(t, s, insertMember, "extra@x.test")
+
+	for _, path := range []string{"../db/reset.sql", "../db/schema.sql", "../db/seed.sql"} {
+		sql, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.Pool.Exec(context.Background(), string(sql)); err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+	}
+	if n := scalar(t, s, `SELECT count(*) FROM members WHERE email='extra@x.test'`); n != 0 {
+		t.Error("ข้อมูลทดสอบต้องหายหลัง reset")
+	}
+	if n := scalar(t, s, `SELECT count(*) FROM games`); n < 25 {
+		t.Errorf("เกมมี %d", n)
+	}
+}
+
 func TestSeedConsistent(t *testing.T) {
 	s := testStore(t)
 	loadSeed(t, s)

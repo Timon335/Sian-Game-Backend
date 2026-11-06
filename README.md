@@ -23,6 +23,12 @@ go run ./cmd/dbload db/schema.sql db/seed.sql
 go run .
 ```
 
+ล้างข้อมูลแล้วโหลดใหม่ทั้งหมด (ข้อมูลเดิมจะหาย)
+
+```bash
+go run ./cmd/dbload db/reset.sql db/schema.sql db/seed.sql
+```
+
 ค่าใน `.env` ได้แก่ `DATABASE_URL` แบบ Session pooler พอร์ต 5432, `JWT_SECRET` ยาวอย่างน้อย 32 ตัวอักษร และ `ALLOWED_ORIGINS`
 
 ## เทสต์
