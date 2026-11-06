@@ -21,5 +21,15 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /api/me", login(h.Me))
 	mux.HandleFunc("PUT /api/me", login(h.UpdateMe))
 	mux.HandleFunc("PUT /api/me/password", login(h.ChangePassword))
+	mux.HandleFunc("GET /api/me/cart", login(gameList(h.Store.CartItems)))
+	mux.HandleFunc("PUT /api/me/cart/{gameId}", login(gameAction(h.Store.AddToCart)))
+	mux.HandleFunc("DELETE /api/me/cart/{gameId}", login(gameAction(h.Store.RemoveFromCart)))
+	mux.HandleFunc("GET /api/me/wishlist", login(gameList(h.Store.Wishlist)))
+	mux.HandleFunc("PUT /api/me/wishlist/{gameId}", login(gameAction(h.Store.AddWishlist)))
+	mux.HandleFunc("DELETE /api/me/wishlist/{gameId}", login(gameAction(h.Store.RemoveWishlist)))
+	mux.HandleFunc("GET /api/me/library", login(gameList(h.Store.Library)))
+	mux.HandleFunc("GET /api/me/orders", login(h.ListOrders))
+	mux.HandleFunc("POST /api/me/orders", login(h.PlaceOrder))
+	mux.HandleFunc("GET /api/me/orders/{id}", login(h.GetOrder))
 	return mux
 }
