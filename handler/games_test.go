@@ -70,6 +70,13 @@ func TestBadIDReturns400(t *testing.T) {
 	}
 }
 
+func TestUnknownRouteIs404JSON(t *testing.T) {
+	a := newApp(t)
+	if code := wantStatus(t, a.call("GET", "/api/nope", "", nil), http.StatusNotFound); code != "NOT_FOUND" {
+		t.Errorf("code = %q", code)
+	}
+}
+
 func TestGenresList(t *testing.T) {
 	a := newApp(t)
 	a.exec(`INSERT INTO genres (name) VALUES ('RPG')`)

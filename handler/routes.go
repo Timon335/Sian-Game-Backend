@@ -15,6 +15,10 @@ func (h *Handler) Routes() http.Handler {
 	admin := func(next http.HandlerFunc) http.HandlerFunc { return login(mw.RequireRole("admin", next)) }
 
 	mux := http.NewServeMux()
+	// เส้นทางที่ไม่มีจริงก็ตอบ JSON เหมือนทุก error
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "ไม่พบเส้นทางนี้")
+	})
 	// หลังบ้าน: ทุกเส้นทางใต้ /api/admin ผ่าน admin(...) ไม่มีข้อยกเว้น
 	mux.HandleFunc("GET /api/admin/stats", admin(h.AdminStats))
 	mux.HandleFunc("GET /api/admin/games", admin(h.AdminListGames))
