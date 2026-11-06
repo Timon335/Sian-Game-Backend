@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"regexp"
 	"strings"
@@ -86,7 +87,7 @@ func readGame(w http.ResponseWriter, r *http.Request) (store.GameInput, bool) {
 		return bad("BAD_DESCRIPTION", "ต้องมีคำอธิบายเกม")
 	case in.Developer == "" || len(in.Developer) > 255:
 		return bad("BAD_DEVELOPER", "ต้องมีชื่อผู้พัฒนา")
-	case in.Price <= 0 || in.Price > 99999999:
+	case math.Round(in.Price*100) <= 0 || in.Price > 99999999: // ฐานข้อมูลเก็บทศนิยม 2 ตำแหน่ง จึงตรวจค่าหลังปัดแล้ว
 		return bad("BAD_PRICE", "ราคาต้องมากกว่า 0")
 	case !httpURL.MatchString(in.Cover) || len(in.Cover) > 1000:
 		return bad("BAD_COVER", "รูปหลักต้องเป็นลิงก์ที่ขึ้นต้นด้วย http:// หรือ https://")

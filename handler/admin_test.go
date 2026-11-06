@@ -74,6 +74,7 @@ func TestCreateGameValidation(t *testing.T) {
 	}{
 		{"ราคา 0", "price", 0, "BAD_PRICE"},
 		{"ราคาติดลบ", "price", -5, "BAD_PRICE"},
+		{"ราคาปัดแล้วเป็น 0", "price", 0.001, "BAD_PRICE"},
 		{"ชื่อว่าง", "title", "  ", "BAD_TITLE"},
 		{"คำอธิบายว่าง", "description", "", "BAD_DESCRIPTION"},
 		{"ผู้พัฒนาว่าง", "developer", "", "BAD_DEVELOPER"},
