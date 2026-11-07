@@ -200,8 +200,8 @@ INSERT INTO game_screenshots VALUES (30,'https://shared.akamai.steamstatic.com/s
 INSERT INTO game_screenshots VALUES (30,'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/255710/ss_b5a4b72062b8c4ad677b242963e88c2e624cb1f9.1920x1080.jpg?t=1791468493',2);
 INSERT INTO game_screenshots VALUES (30,'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/255710/ss_39f74526167020dfae4156945f24e7e49d5eedf8.1920x1080.jpg?t=1791468493',3);
 SELECT setval('games_id_seq',30);
-INSERT INTO members (id,email,password_hash,display_name,role,created_at) VALUES (1,'admin@siangame.test','$2a$10$QbzhsTS5cL.LiWe6MEUTRehtYNd28EWfXeD5gu5hx50QO06NoQK4m','ผู้ดูแล Sian Game','admin',now() - interval '19 days');
-INSERT INTO members (id,email,password_hash,display_name,role,created_at) VALUES (2,'demo@siangame.test','$2a$10$pZ8nyFhGCaGMQuHaosm3UeWiFmv0uXlT5KSZkItlzDFSXX4fYqd/u','ผู้ทดลองใช้','member',now() - interval '18 days');
+INSERT INTO members (id,email,password_hash,display_name,role,created_at) VALUES (1,'admin@siangame.test','$2a$10$QbzhsTS5cL.LiWe6MEUTRehtYNd28EWfXeD5gu5hx50QO06NoQK4m','นิว','admin',now() - interval '19 days');
+INSERT INTO members (id,email,password_hash,display_name,role,created_at) VALUES (2,'demo@siangame.test','$2a$10$pZ8nyFhGCaGMQuHaosm3UeWiFmv0uXlT5KSZkItlzDFSXX4fYqd/u','ปอนด์','member',now() - interval '18 days');
 INSERT INTO members (id,email,password_hash,display_name,role,created_at) VALUES (3,'member3@siangame.test','$2a$10$h6mDvKZ4TlH7a1IhbAL0S.6um3PDuaLchIgcLwBudvz1PGUT6ytFW','มาร์ค','member',now() - interval '17 days');
 INSERT INTO members (id,email,password_hash,display_name,role,created_at) VALUES (4,'member4@siangame.test','$2a$10$MFsO992olcButSaT0mzRV.jzjjQl655G1EZDwA4bHInvVbn9tnm5i','น้ำฝน','member',now() - interval '16 days');
 INSERT INTO members (id,email,password_hash,display_name,role,created_at) VALUES (5,'member5@siangame.test','$2a$10$Z1Xna/qGKr.dJSAGqpcP9.a3D2c4ZompcPbq1cHYbumbgobLukzIK','ต้นกล้า','member',now() - interval '15 days');
