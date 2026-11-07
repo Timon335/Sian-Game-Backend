@@ -8,8 +8,10 @@ import (
 
 // Routes ผูกทุกเส้นทางของ API ไว้ที่เดียว
 func (h *Handler) Routes() http.Handler {
-	// login = ต้องมีตั๋ว
-	login := func(next http.HandlerFunc) http.HandlerFunc { return mw.RequireLogin(h.Tickets, next) }
+	// login = ต้องมีตั๋ว และบัญชีต้องยังอยู่
+	login := func(next http.HandlerFunc) http.HandlerFunc {
+		return mw.RequireLogin(h.Tickets, h.requireMember(next))
+	}
 
 	// admin = ต้องมีตั๋วและบทบาทเป็น admin ตรวจตั๋วก่อนเสมอแล้วค่อยดูบทบาท
 	admin := func(next http.HandlerFunc) http.HandlerFunc { return login(mw.RequireRole("admin", next)) }

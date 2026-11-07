@@ -81,11 +81,11 @@ func readGame(w http.ResponseWriter, r *http.Request) (store.GameInput, bool) {
 		return in, false
 	}
 	switch {
-	case in.Title == "" || len(in.Title) > 255:
+	case in.Title == "" || len(in.Title) > 255 || hasNUL(in.Title):
 		return bad("BAD_TITLE", "ต้องมีชื่อเกม และยาวไม่เกิน 255 ไบต์")
-	case in.Description == "":
+	case in.Description == "" || hasNUL(in.Description):
 		return bad("BAD_DESCRIPTION", "ต้องมีคำอธิบายเกม")
-	case in.Developer == "" || len(in.Developer) > 255:
+	case in.Developer == "" || len(in.Developer) > 255 || hasNUL(in.Developer):
 		return bad("BAD_DEVELOPER", "ต้องมีชื่อผู้พัฒนา")
 	case math.Round(in.Price*100) <= 0 || in.Price > 99999999: // ฐานข้อมูลเก็บทศนิยม 2 ตำแหน่ง จึงตรวจค่าหลังปัดแล้ว
 		return bad("BAD_PRICE", "ราคาต้องมากกว่า 0")
@@ -98,8 +98,13 @@ func readGame(w http.ResponseWriter, r *http.Request) (store.GameInput, bool) {
 		in.ReleaseDate = nil
 	}
 	if in.ReleaseDate != nil {
-		if _, err := time.Parse("2006-01-02", *in.ReleaseDate); err != nil {
+		if d, err := time.Parse("2006-01-02", *in.ReleaseDate); err != nil || d.Year() < 1950 {
 			return bad("BAD_DATE", "วันวางจำหน่ายต้องอยู่ในรูปแบบ YYYY-MM-DD")
+		}
+	}
+	for _, id := range in.GenreIDs {
+		if id < 1 || id > math.MaxInt32 {
+			return bad("BAD_GENRE", "มีแนวเกมที่ไม่มีอยู่จริง")
 		}
 	}
 	for _, u := range in.Screenshots {

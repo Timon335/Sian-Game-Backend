@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -11,9 +12,17 @@ import (
 	"siangame/store"
 )
 
-// validPassword ตรวจความยาว bcrypt รับได้ไม่เกิน 72 ไบต์
+// emailPattern ตรวจรูปแบบพื้นฐาน: มีชื่อ @ โดเมน และจุดในโดเมน
+var emailPattern = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+
+// hasNUL ตรวจอักขระ NUL ซึ่ง PostgreSQL เก็บในข้อความไม่ได้
+func hasNUL(s string) bool {
+	return strings.ContainsRune(s, 0)
+}
+
+// validPassword ตรวจความยาว bcrypt รับได้ไม่เกิน 72 ไบต์ และต้องไม่เป็นช่องว่างล้วน
 func validPassword(p string) bool {
-	return utf8.RuneCountInString(p) >= 8 && len(p) <= 72
+	return utf8.RuneCountInString(p) >= 8 && len(p) <= 72 && strings.TrimSpace(p) != ""
 }
 
 func writeBadPassword(w http.ResponseWriter) {
@@ -21,7 +30,7 @@ func writeBadPassword(w http.ResponseWriter) {
 }
 
 func validName(n string) bool {
-	return n != "" && utf8.RuneCountInString(n) <= 50
+	return n != "" && utf8.RuneCountInString(n) <= 50 && !hasNUL(n)
 }
 
 func writeBadName(w http.ResponseWriter) {
@@ -41,7 +50,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	email := strings.ToLower(strings.TrimSpace(req.Email))
 	name := strings.TrimSpace(req.DisplayName)
 	switch {
-	case !strings.Contains(email, "@") || len(email) > 255:
+	case !emailPattern.MatchString(email) || len(email) > 255 || hasNUL(email):
 		writeError(w, http.StatusBadRequest, "BAD_EMAIL", "รูปแบบอีเมลไม่ถูกต้อง")
 		return
 	case !validPassword(req.Password):
@@ -77,6 +86,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if !readJSON(w, r, &req) {
 		return
 	}
+	if hasNUL(req.Email) {
+		writeError(w, http.StatusUnauthorized, "BAD_CREDENTIALS", "อีเมลหรือรหัสผ่านไม่ถูกต้อง")
+		return
+	}
 	m, err := h.Store.MemberByEmail(r.Context(), strings.TrimSpace(req.Email))
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		internal(w, err)
@@ -92,6 +105,15 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"member": m, "token": token})
+}
+
+// requireMember ตรวจว่าเจ้าของตั๋วยังมีบัญชีอยู่ ตั๋วที่ลายเซ็นถูกแต่บัญชีถูกลบแล้วจะตอบ 401
+func (h *Handler) requireMember(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := h.currentMember(w, r); ok {
+			next(w, r)
+		}
+	}
 }
 
 // currentMember โหลดสมาชิกตามเลขในตั๋ว ถ้าบัญชีหายไปแล้วตอบ 401

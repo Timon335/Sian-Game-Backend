@@ -26,7 +26,7 @@ func readReview(w http.ResponseWriter, r *http.Request) (int, string, bool) {
 	case req.Rating < 1 || req.Rating > 5:
 		writeError(w, http.StatusBadRequest, "BAD_RATING", "คะแนนต้องอยู่ระหว่าง 1 ถึง 5 ดาว")
 		return 0, "", false
-	case text == "" || utf8.RuneCountInString(text) > maxReviewLength:
+	case text == "" || utf8.RuneCountInString(text) > maxReviewLength || hasNUL(text):
 		writeError(w, http.StatusBadRequest, "BAD_TEXT", "กรุณาเขียนรีวิว และยาวไม่เกิน 2,000 ตัวอักษร")
 		return 0, "", false
 	}
