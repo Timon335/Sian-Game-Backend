@@ -160,6 +160,13 @@ func (s *Store) PlaceOrder(ctx context.Context, memberID int64) (Order, error) {
 	if _, err := tx.Exec(ctx, `DELETE FROM cart_items WHERE member_id = $1`, memberID); err != nil {
 		return o, err
 	}
+	// เกมที่ซื้อแล้วไม่ต้องอยู่ในรายการอยากได้อีก
+	_, err = tx.Exec(ctx,
+		`DELETE FROM wishlist_items WHERE member_id = $1
+		 AND game_id IN (SELECT game_id FROM order_items WHERE order_id = $2)`, memberID, o.ID)
+	if err != nil {
+		return o, err
+	}
 	return o, tx.Commit(ctx)
 }
 
